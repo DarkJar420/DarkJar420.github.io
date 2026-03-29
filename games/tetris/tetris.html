@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tetris — NeonQuarter Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#020408;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'VT323',monospace;color:#00e5ff;}
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,0.3) 3px,rgba(0,0,0,0.3) 4px);pointer-events:none;z-index:100;}
+    body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.8) 100%);pointer-events:none;z-index:101;}
+    .back{position:fixed;top:1rem;left:1.5rem;font-family:'VT323',monospace;font-size:1rem;color:#ffb000;text-decoration:none;letter-spacing:2px;z-index:200;}
+    .back:hover{color:#00ff41;}
+    h1{font-family:'Silkscreen',monospace;font-size:2rem;letter-spacing:4px;color:#00e5ff;text-shadow:0 0 15px #00e5ff;margin-bottom:0.8rem;}
+    .game-area{display:flex;gap:2rem;align-items:flex-start;}
+    canvas{border:2px solid #00e5ff;box-shadow:0 0 20px rgba(0,229,255,0.3);background:#000;}
+    .panel{display:flex;flex-direction:column;gap:1.5rem;min-width:120px;}
+    .panel-box{border:1px solid #0d2a30;padding:1rem;background:#060d10;}
+    .panel-label{font-size:0.8rem;letter-spacing:3px;color:#2a5540;margin-bottom:0.4rem;}
+    .panel-val{font-family:'Silkscreen',monospace;font-size:1.2rem;color:#00e5ff;text-shadow:0 0 8px #00e5ff;}
+    .next-canvas{display:block;margin-top:0.5rem;}
+    .info{margin-top:1rem;font-size:0.9rem;color:#2a5540;letter-spacing:2px;text-align:center;}
+    #msg{position:absolute;font-family:'Silkscreen',monospace;font-size:0.9rem;letter-spacing:2px;color:#00e5ff;text-shadow:0 0 10px #00e5ff;text-align:center;display:none;line-height:2;padding:1rem;background:rgba(0,0,0,0.8);}
+    .wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+    .btn{font-family:'Silkscreen',monospace;font-size:0.65rem;letter-spacing:2px;padding:0.6rem 1.4rem;background:#00e5ff;color:#000;border:none;cursor:pointer;display:none;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);box-shadow:0 0 15px #00e5ff;margin-top:0.5rem;}
+  </style>
+</head>
+<body>
+<a class="back" href="/index.html">← BACK TO ARCADE</a>
+<h1>TETRIS</h1>
+<div class="game-area">
+  <div class="wrap">
+    <canvas id="c" width="200" height="400"></canvas>
+    <div id="msg"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-box"><div class="panel-label">SCORE</div><div class="panel-val" id="score">0</div></div>
+    <div class="panel-box"><div class="panel-label">LINES</div><div class="panel-val" id="lines">0</div></div>
+    <div class="panel-box"><div class="panel-label">LEVEL</div><div class="panel-val" id="level">1</div></div>
+    <div class="panel-box"><div class="panel-label">NEXT</div><canvas class="next-canvas" id="next" width="80" height="80"></canvas></div>
+    <button class="btn" id="btn">▶ START</button>
+  </div>
+</div>
+<div class="info">← → MOVE &nbsp;↑ ROTATE &nbsp;↓ SOFT DROP &nbsp;SPACE HARD DROP</div>
 
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const nextCanvas=document.getElementById('next'),nctx=nextCanvas.getContext('2d');
+const COLS=10,ROWS=20,TILE=20;
+
+const PIECES=[
+  {shape:[[1,1,1,1]],color:'#00e5ff'},
+  {shape:[[1,1],[1,1]],color:'#ffb000'},
+  {shape:[[0,1,0],[1,1,1]],color:'#cc00ff'},
+  {shape:[[1,0,0],[1,1,1]],color:'#ff6600'},
+  {shape:[[0,0,1],[1,1,1]],color:'#0066ff'},
+  {shape:[[0,1,1],[1,1,0]],color:'#00ff41'},
+  {shape:[[1,1,0],[0,1,1]],color:'#ff003c'},
+];
+
+let board,piece,next,score,lines,level,speed,dropping,gameOver,started,loopId;
+
+function newBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(0));}
+function rndPiece(){const p=PIECES[Math.floor(Math.random()*PIECES.length)];return{shape:p.shape.map(r=>[...r]),color:p.color,x:Math.floor(COLS/2)-Math.floor(p.shape[0].length/2),y:0};}
+
+function init(){
+  board=newBoard();score=0;lines=0;level=1;speed=800;dropping=false;gameOver=false;started=false;
+  piece=rndPiece();next=rndPiece();
+  document.getElementById('score').textContent=score;
+  document.getElementById('lines').textContent=lines;
+  document.getElementById('level').textContent=level;
+  document.getElementById('btn').style.display='inline-block';
+  document.getElementById('btn').textContent='▶ START';
+  showMsg('TETRIS\n\nCLICK START\nOR PRESS SPACE',true);
+  drawAll();
+}
+
+function showMsg(txt,persist){const m=document.getElementById('msg');m.style.display='block';m.innerHTML=txt.replace(/\n/g,'<br/>');if(!persist)setTimeout(()=>m.style.display='none',1500);}
+
+function valid(sh,ox,oy){
+  for(let r=0;r<sh.length;r++)for(let c=0;c<sh[r].length;c++){
+    if(!sh[r][c])continue;
+    const nx=ox+c,ny=oy+r;
+    if(nx<0||nx>=COLS||ny>=ROWS)return false;
+    if(ny>=0&&board[ny][nx])return false;
+  }
+  return true;
+}
+
+function rotate(sh){return sh[0].map((_,i)=>sh.map(r=>r[i]).reverse());}
+
+function lock(){
+  piece.shape.forEach((r,ri)=>r.forEach((c,ci)=>{if(c&&piece.y+ri>=0)board[piece.y+ri][piece.x+ci]=piece.color;}));
+  clearLines();
+  piece=next;next=rndPiece();
+  if(!valid(piece.shape,piece.x,piece.y)){endGame();return;}
+  drawNext();
+}
+
+function clearLines(){
+  let cleared=0;
+  for(let r=ROWS-1;r>=0;r--){
+    if(board[r].every(c=>c)){board.splice(r,1);board.unshift(Array(COLS).fill(0));cleared++;r++;}
+  }
+  if(cleared){
+    const pts=[0,100,300,500,800];
+    score+=pts[cleared]*level;lines+=cleared;
+    level=Math.floor(lines/10)+1;
+    speed=Math.max(100,800-level*70);
+    document.getElementById('score').textContent=score;
+    document.getElementById('lines').textContent=lines;
+    document.getElementById('level').textContent=level;
+    if(dropping){clearInterval(dropping);dropping=setInterval(drop,speed);}
+  }
+}
+
+function drop(){
+  if(!valid(piece.shape,piece.x,piece.y+1))lock();
+  else piece.y++;
+  drawAll();
+}
+
+function hardDrop(){while(valid(piece.shape,piece.x,piece.y+1))piece.y++;lock();drawAll();}
+
+function endGame(){gameOver=true;clearInterval(dropping);dropping=null;showMsg('GAME OVER\nSCORE: '+score,true);document.getElementById('btn').style.display='inline-block';document.getElementById('btn').textContent='▶ PLAY AGAIN';}
+
+function startGame(){
+  clearInterval(dropping);
+  board=newBoard();score=0;lines=0;level=1;speed=800;gameOver=false;started=true;
+  piece=rndPiece();next=rndPiece();
+  document.getElementById('score').textContent=score;document.getElementById('lines').textContent=lines;document.getElementById('level').textContent=level;
+  document.getElementById('msg').style.display='none';
+  document.getElementById('btn').style.display='none';
+  dropping=setInterval(drop,speed);
+  drawAll();
+}
+
+function ghostY(){let gy=piece.y;while(valid(piece.shape,piece.x,gy+1))gy++;return gy;}
+
+function drawBoard(){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Grid
+  ctx.strokeStyle='rgba(0,229,255,0.05)';ctx.lineWidth=0.5;
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*TILE);ctx.lineTo(canvas.width,r*TILE);ctx.stroke();}
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*TILE,0);ctx.lineTo(c*TILE,canvas.height);ctx.stroke();}
+  // Board cells
+  board.forEach((row,r)=>row.forEach((cell,c)=>{if(cell){drawCell(ctx,c*TILE,r*TILE,cell);}}));
+  // Ghost piece
+  if(!gameOver&&started){
+    const gy=ghostY();
+    piece.shape.forEach((r,ri)=>r.forEach((c,ci)=>{if(c){ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect((piece.x+ci)*TILE+1,(gy+ri)*TILE+1,TILE-2,TILE-2);}}));
+  }
+  // Current piece
+  if(!gameOver&&started){
+    piece.shape.forEach((r,ri)=>r.forEach((c,ci)=>{if(c&&piece.y+ri>=0)drawCell(ctx,(piece.x+ci)*TILE,(piece.y+ri)*TILE,piece.color);}));
+  }
+}
+
+function drawCell(c,x,y,color){
+  c.fillStyle=color;c.shadowBlur=8;c.shadowColor=color;
+  c.fillRect(x+1,y+1,TILE-2,TILE-2);
+  c.fillStyle='rgba(255,255,255,0.25)';c.fillRect(x+1,y+1,TILE-2,4);
+  c.shadowBlur=0;
+}
+
+function drawNext(){
+  nctx.fillStyle='#000';nctx.fillRect(0,0,nextCanvas.width,nextCanvas.height);
+  const s=next.shape,t=16;
+  const ox=Math.floor((nextCanvas.width/t-s[0].length)/2)*t;
+  const oy=Math.floor((nextCanvas.height/t-s.length)/2)*t;
+  s.forEach((r,ri)=>r.forEach((c,ci)=>{if(c)drawCell(nctx,ox+ci*t,oy+ri*t,next.color);}));
+}
+
+function drawAll(){drawBoard();drawNext();}
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();if(!started||gameOver)startGame();else hardDrop();return;}
+  if(!started||gameOver)return;
+  if(e.key==='ArrowLeft'&&valid(piece.shape,piece.x-1,piece.y))piece.x--;
+  if(e.key==='ArrowRight'&&valid(piece.shape,piece.x+1,piece.y))piece.x++;
+  if(e.key==='ArrowDown'){e.preventDefault();drop();}
+  if(e.key==='ArrowUp'){const r=rotate(piece.shape);if(valid(r,piece.x,piece.y))piece.shape=r;}
+  drawAll();
+});
+
+document.getElementById('btn').addEventListener('click',startGame);
+init();
+</script>
+</body>
+</html>
