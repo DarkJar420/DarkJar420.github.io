@@ -1,1 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Breakout — NeonQuarter Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#020408;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'VT323',monospace;color:#00e5ff;}
+    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,0.3) 3px,rgba(0,0,0,0.3) 4px);pointer-events:none;z-index:100;}
+    body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.8) 100%);pointer-events:none;z-index:101;}
+    .back{position:fixed;top:1rem;left:1.5rem;font-family:'VT323',monospace;font-size:1rem;color:#ffb000;text-decoration:none;letter-spacing:2px;z-index:200;}
+    .back:hover{color:#00ff41;}
+    h1{font-family:'Silkscreen',monospace;font-size:2rem;letter-spacing:4px;color:#00e5ff;text-shadow:0 0 15px #00e5ff;margin-bottom:0.5rem;}
+    .hud{display:flex;gap:3rem;margin-bottom:0.8rem;font-size:1.2rem;letter-spacing:3px;}
+    .hud span{color:#ffb000;}
+    canvas{border:2px solid #00e5ff;box-shadow:0 0 20px rgba(0,229,255,0.3);background:#000;display:block;cursor:none;}
+    .info{margin-top:0.8rem;font-size:0.9rem;color:#2a5540;letter-spacing:2px;text-align:center;}
+    #msg{position:absolute;font-family:'Silkscreen',monospace;font-size:1rem;letter-spacing:2px;color:#00e5ff;text-shadow:0 0 10px #00e5ff;text-align:center;display:none;line-height:2;background:rgba(0,0,0,0.85);padding:1.5rem 2rem;}
+    .wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+  </style>
+</head>
+<body>
+<a class="back" href="/index.html">← BACK TO ARCADE</a>
+<h1>BREAKOUT</h1>
+<div class="hud"><div>SCORE: <span id="score">0</span></div><div>LIVES: <span id="lives">3</span></div><div>LEVEL: <span id="level">1</span></div></div>
+<div class="wrap">
+  <canvas id="c" width="480" height="400"></canvas>
+  <div id="msg"></div>
+</div>
+<div class="info">MOUSE / ← → KEYS TO MOVE PADDLE &nbsp;|&nbsp; SPACE TO LAUNCH</div>
 
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height;
+
+const BRICK_ROWS=6,BRICK_COLS=10,BRICK_W=42,BRICK_H=16,BRICK_PAD=4,BRICK_TOP=40;
+const ROW_COLORS=['#ff003c','#ff6600','#ffb000','#00ff41','#00e5ff','#cc00ff'];
+
+let paddle,ball,bricks,score,lives,level,launched,running,animId;
+
+function init(){
+  score=0;lives=3;level=1;launched=false;running=false;
+  document.getElementById('score').textContent=score;
+  document.getElementById('lives').textContent=lives;
+  document.getElementById('level').textContent=level;
+  resetBall();
+  makeBricks();
+  showMsg('BREAKOUT\n\nPRESS SPACE\nTO LAUNCH',true);
+  cancelAnimationFrame(animId);
+  animId=requestAnimationFrame(loop);
+}
+
+function resetBall(){
+  paddle={x:W/2-40,y:H-30,w:80,h:10};
+  ball={x:W/2,y:H-50,r:7,dx:3+level*0.5,dy:-(3+level*0.5)};
+  launched=false;
+}
+
+function makeBricks(){
+  bricks=[];
+  for(let r=0;r<BRICK_ROWS;r++)for(let c=0;c<BRICK_COLS;c++){
+    bricks.push({x:c*(BRICK_W+BRICK_PAD)+BRICK_PAD,y:r*(BRICK_H+BRICK_PAD)+BRICK_TOP,alive:true,color:ROW_COLORS[r],pts:(BRICK_ROWS-r)*10});
+  }
+}
+
+function showMsg(txt,persist){const m=document.getElementById('msg');m.style.display='block';m.innerHTML=txt.replace(/\n/g,'<br/>');if(!persist)setTimeout(()=>m.style.display='none',1800);}
+
+function update(){
+  if(!running)return;
+  if(!launched){ball.x=paddle.x+paddle.w/2;return;}
+
+  ball.x+=ball.dx;ball.y+=ball.dy;
+
+  // Walls
+  if(ball.x-ball.r<0){ball.x=ball.r;ball.dx*=-1;}
+  if(ball.x+ball.r>W){ball.x=W-ball.r;ball.dx*=-1;}
+  if(ball.y-ball.r<0){ball.y=ball.r;ball.dy*=-1;}
+
+  // Paddle
+  if(ball.y+ball.r>paddle.y&&ball.y+ball.r<paddle.y+paddle.h+10&&ball.x>paddle.x&&ball.x<paddle.x+paddle.w){
+    ball.dy=-(Math.abs(ball.dy));
+    // Angle based on hit position
+    const hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
+    ball.dx=hit*5;
+  }
+
+  // Bottom
+  if(ball.y-ball.r>H){loseLife();return;}
+
+  // Bricks
+  bricks.forEach(b=>{
+    if(!b.alive)return;
+    if(ball.x>b.x&&ball.x<b.x+BRICK_W&&ball.y>b.y&&ball.y<b.y+BRICK_H){
+      b.alive=false;ball.dy*=-1;score+=b.pts;
+      document.getElementById('score').textContent=score;
+      // Particle flash
+      flash(b.x+BRICK_W/2,b.y+BRICK_H/2,b.color);
+    }
+  });
+
+  if(bricks.every(b=>!b.alive)){nextLevel();}
+}
+
+const particles=[];
+function flash(x,y,color){for(let i=0;i<8;i++)particles.push({x,y,dx:(Math.random()-0.5)*5,dy:(Math.random()-0.5)*5,life:30,color});}
+
+function loseLife(){
+  lives--;document.getElementById('lives').textContent=lives;
+  if(lives<=0){running=false;showMsg('GAME OVER\nSCORE: '+score,true);}
+  else{resetBall();running=false;setTimeout(()=>running=true,800);showMsg('OUCH!',false);}
+}
+
+function nextLevel(){
+  level++;running=false;
+  document.getElementById('level').textContent=level;
+  showMsg('LEVEL '+level+'!',false);
+  setTimeout(()=>{makeBricks();resetBall();running=true;},2000);
+}
+
+function draw(){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  // Bricks
+  bricks.forEach(b=>{
+    if(!b.alive)return;
+    ctx.fillStyle=b.color;ctx.shadowBlur=8;ctx.shadowColor=b.color;
+    ctx.fillRect(b.x,b.y,BRICK_W,BRICK_H);
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(b.x,b.y,BRICK_W,4);
+    ctx.shadowBlur=0;
+  });
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    ctx.fillStyle=p.color;ctx.globalAlpha=p.life/30;
+    ctx.fillRect(p.x,p.y,4,4);
+    p.x+=p.dx;p.y+=p.dy;p.life--;
+    if(p.life<=0)particles.splice(i,1);
+  }
+  ctx.globalAlpha=1;
+
+  // Paddle
+  ctx.fillStyle='#00e5ff';ctx.shadowBlur=15;ctx.shadowColor='#00e5ff';
+  ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+  ctx.shadowBlur=0;
+
+  // Ball
+  ctx.fillStyle='#fff';ctx.shadowBlur=15;ctx.shadowColor='#00e5ff';
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+}
+
+function loop(){
+  update();draw();animId=requestAnimationFrame(loop);
+}
+
+// Controls
+document.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect();
+  paddle.x=e.clientX-rect.left-paddle.w/2;
+  paddle.x=Math.max(0,Math.min(W-paddle.w,paddle.x));
+});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();if(!running){running=true;document.getElementById('msg').style.display='none';}if(!launched)launched=true;return;}
+  if(e.key==='ArrowLeft')paddle.x=Math.max(0,paddle.x-20);
+  if(e.key==='ArrowRight')paddle.x=Math.min(W-paddle.w,paddle.x+20);
+});
+canvas.addEventListener('click',()=>{if(!launched&&running)launched=true;});
+
+init();
+</script>
+</body>
+</html>
