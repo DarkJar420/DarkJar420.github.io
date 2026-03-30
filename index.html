@@ -203,6 +203,7 @@
       font-size: 5.5rem; position: relative; overflow: hidden; transition: filter 0.3s;
     }
     .art-pacman   { background: radial-gradient(circle at 30% 50%, #2a1f00, #0a0800); }
+    .art-mspacman { background: radial-gradient(circle at 60% 40%, #2a001f, #0a0008); }
     .art-snake    { background: radial-gradient(circle at 70% 30%, #001a08, #020a04); }
     .art-tetris   { background: radial-gradient(circle at 50% 70%, #000d2a, #000510); }
     .art-2048     { background: radial-gradient(circle at 60% 40%, #1a0d00, #080400); }
@@ -268,6 +269,24 @@
     .footer-copy { font-family: 'VT323', monospace; font-size: 0.85rem; color: #0d2a20; letter-spacing: 3px; }
 
     @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+    .music-btn {
+      font-family: 'VT323', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      background: transparent;
+      border: 1px solid var(--amber-dim);
+      color: var(--amber);
+      padding: 0.2rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .music-btn:hover, .music-btn.on {
+      border-color: var(--green);
+      color: var(--green);
+      text-shadow: 0 0 8px var(--green);
+      box-shadow: 0 0 8px rgba(57,255,20,0.2);
+    }
     @media (max-width: 640px) { .nav-links, .nav-coin { display: none; } .hero-stats { gap: 1.5rem; } .hero-title { font-size: 3rem; } }
   </style>
 </head>
@@ -293,6 +312,7 @@
       <li><a href="#about">About</a></li>
     </ul>
     <span class="nav-coin">INSERT COIN</span>
+    <button class="music-btn" id="musicBtn">🔇 MUSIC</button>
   </nav>
 
   <section class="hero">
@@ -305,7 +325,7 @@
     <p class="hero-desc">Classic browser games. No coins. No downloads. No excuses.<br/>Pure retro gaming, right in your browser.</p>
     <a href="#games" class="hero-cta">START PLAYING</a>
     <div class="hero-stats">
-      <div class="stat"><div class="stat-val">8</div><div class="stat-label">GAMES</div></div>
+      <div class="stat"><div class="stat-val">9</div><div class="stat-label">GAMES</div></div>
       <div class="stat"><div class="stat-val">∞</div><div class="stat-label">FREE PLAYS</div></div>
       <div class="stat"><div class="stat-val">0</div><div class="stat-label">DOWNLOADS</div></div>
     </div>
@@ -313,11 +333,11 @@
 
   <div class="ticker-wrap">
     <div class="ticker">
-      <span class="ticker-item">PAC-MAN</span><span class="ticker-item">SNAKE</span>
+      <span class="ticker-item">PAC-MAN</span><span class="ticker-item">MS PAC-MAN</span><span class="ticker-item">SNAKE</span>
       <span class="ticker-item">TETRIS</span><span class="ticker-item">2048</span>
       <span class="ticker-item">SPACE INVADERS</span><span class="ticker-item">BREAKOUT</span>
       <span class="ticker-item">SOLITAIRE</span><span class="ticker-item">FROGGER</span>
-      <span class="ticker-item">PAC-MAN</span><span class="ticker-item">SNAKE</span>
+      <span class="ticker-item">PAC-MAN</span><span class="ticker-item">MS PAC-MAN</span><span class="ticker-item">SNAKE</span>
       <span class="ticker-item">TETRIS</span><span class="ticker-item">2048</span>
       <span class="ticker-item">SPACE INVADERS</span><span class="ticker-item">BREAKOUT</span>
       <span class="ticker-item">SOLITAIRE</span><span class="ticker-item">FROGGER</span>
@@ -342,6 +362,13 @@
         <span class="card-badge badge-hot">HOT</span>
         <div class="card-art art-pacman">🟡<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
         <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">PAC-MAN</div><p class="card-desc">Eat every dot. Dodge every ghost. The legend never dies.</p></div>
+      </a>
+
+      <a class="game-card" href="games/mspacman/mspacman.html" data-cat="arcade">
+        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
+        <span class="card-badge badge-new">NEW</span>
+        <div class="card-art art-mspacman">💗<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
+        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">MS. PAC-MAN</div><p class="card-desc">4 unique mazes, faster ghosts, and a bow. The sequel that topped the original.</p></div>
       </a>
 
       <a class="game-card" href="games/snake/snake.html" data-cat="arcade">
@@ -462,6 +489,239 @@
     });
   }, { threshold: 0.1 });
   cards.forEach(c => obs.observe(c));
+
+  // ── 8-BIT CHIPTUNE MUSIC ENGINE ──
+  (function() {
+    const AC = new (window.AudioContext || window.webkitAudioContext)();
+    const masterGain = AC.createGain();
+    const compressor = AC.createDynamicsCompressor();
+    masterGain.connect(compressor);
+    compressor.connect(AC.destination);
+    masterGain.gain.value = 0;
+
+    let playing = false;
+    let scheduledNodes = [];
+    let loopTimeout = null;
+
+    // Note frequencies
+    const NOTE = {
+      C3:130.81, D3:146.83, E3:164.81, F3:174.61, G3:196.00, A3:220.00, B3:246.94,
+      C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00, A4:440.00, B4:493.88,
+      C5:523.25, D5:587.33, E5:659.25, F5:698.46, G5:783.99, A5:880.00, B5:987.77,
+      C6:1046.50, D6:1174.66, E6:1318.51, F6:1396.91, G6:1567.98, A6:1760.00,
+      _:0 // rest
+    };
+
+    const BPM = 140;
+    const BEAT = 60 / BPM;
+    const S = BEAT / 2; // sixteenth note
+
+    // ── MELODY: Retro arcade chiptune ──
+    const melody = [
+      // Bar 1
+      ['E5',1],['_',1],['E5',1],['_',1],['E5',1],['_',1],['C5',1],['E5',2],
+      ['G5',2],['_',2],['G4',2],['_',2],
+      // Bar 2
+      ['C5',2],['_',1],['G4',2],['_',1],['E4',2],['_',1],['A4',2],['B4',2],
+      ['Bb4',1],['A4',2],['G4',2],['E5',2],['G5',2],['A5',2],['F5',2],['G5',1],
+      // Bar 3
+      ['E5',2],['C5',2],['D5',2],['B4',3],['_',1],
+      ['C5',2],['_',1],['G4',2],['_',1],['E4',2],['_',2],
+      // Bar 4 - variation
+      ['G5',1],['F5',1],['E5',1],['D5',1],['E5',1],['_',1],['C5',1],['D5',1],
+      ['E5',2],['C5',1],['D5',1],['E5',4],
+    ];
+
+    // Add Bb4
+    NOTE['Bb4'] = 466.16;
+
+    // ── BASS LINE ──
+    const bass = [
+      ['C3',2],['_',2],['C4',1],['_',1],['C3',2],['_',2],
+      ['G3',2],['_',2],['G4',1],['_',1],['G3',2],['_',2],
+      ['A3',2],['_',2],['A4',1],['_',1],['A3',2],['_',2],
+      ['E3',2],['_',2],['E4',1],['_',1],['E3',2],['_',2],
+      ['F3',2],['_',2],['F4',1],['_',1],['F3',2],['_',2],
+      ['C3',2],['_',2],['C4',1],['_',1],['C3',2],['_',2],
+      ['G3',2],['_',2],['D4',1],['_',1],['G3',2],['_',2],
+      ['C3',2],['_',2],['E3',1],['G3',1],['C4',4],
+    ];
+
+    // ── ARPEGGIO ──
+    const arp = [
+      'C4','E4','G4','E4','C4','E4','G4','E4',
+      'G3','B3','D4','B3','G3','B3','D4','B3',
+      'A3','C4','E4','C4','A3','C4','E4','C4',
+      'E3','G3','B3','G3','E3','G3','B3','G3',
+      'F3','A3','C4','A3','F3','A3','C4','A3',
+      'C4','E4','G4','E4','C4','E4','G4','E4',
+      'G3','B3','D4','B3','G3','B3','D4','B3',
+      'C4','E4','G4','C5','G4','E4','C4','E4',
+    ];
+
+    // ── DRUM PATTERN (noise bursts) ──
+    const drums = [1,0,0,0,1,0,0,0,1,0,0,0,1,0,1,0]; // kick pattern per 16th
+
+    function createOsc(type, freq, startTime, duration, vol, detune) {
+      if (!freq) return null;
+      const osc = AC.createOscillator();
+      const gain = AC.createGain();
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.type = type;
+      osc.frequency.value = freq;
+      if (detune) osc.detune.value = detune;
+      gain.gain.setValueAtTime(vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.95);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+      scheduledNodes.push(osc);
+      return osc;
+    }
+
+    function createNoise(startTime, duration, vol, type) {
+      const bufSize = AC.sampleRate * 0.1;
+      const buf = AC.createBuffer(1, bufSize, AC.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = AC.createBufferSource();
+      src.buffer = buf;
+      const gain = AC.createGain();
+      const filter = AC.createBiquadFilter();
+      filter.type = type === 'hi' ? 'highpass' : 'lowpass';
+      filter.frequency.value = type === 'hi' ? 8000 : 200;
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      gain.gain.setValueAtTime(vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      src.start(startTime);
+      src.stop(startTime + duration);
+      scheduledNodes.push(src);
+    }
+
+    function scheduleMusic(startTime) {
+      scheduledNodes = [];
+      const totalBeats = 32; // 2 bars of 16 sixteenth notes
+      let t = startTime;
+
+      // Calculate total melody duration
+      let melodyDur = 0;
+      melody.forEach(([n, len]) => melodyDur += len * S);
+
+      // Schedule melody (square wave - classic chip sound)
+      let mt = startTime;
+      melody.forEach(([n, len]) => {
+        const freq = NOTE[n] || 0;
+        if (freq) createOsc('square', freq, mt, len * S * 0.85, 0.08);
+        mt += len * S;
+      });
+
+      // Schedule bass (triangle wave - warm low end)
+      let bt = startTime;
+      bass.forEach(([n, len]) => {
+        const freq = NOTE[n] || 0;
+        if (freq) createOsc('triangle', freq, bt, len * S * 0.9, 0.12);
+        bt += len * S;
+      });
+
+      // Schedule arpeggio (sawtooth - bright sparkle)
+      let at = startTime;
+      arp.forEach((n, i) => {
+        const freq = NOTE[n] || 0;
+        if (freq) createOsc('sawtooth', freq, at, S * 0.5, 0.04);
+        at += S;
+      });
+      // Repeat arp to fill melody length
+      arp.forEach((n, i) => {
+        const freq = NOTE[n] || 0;
+        if (freq) createOsc('sawtooth', freq, at, S * 0.5, 0.04);
+        at += S;
+      });
+
+      // Schedule drums
+      const drumLoop = Math.ceil(melodyDur / (drums.length * S));
+      for (let rep = 0; rep < drumLoop; rep++) {
+        drums.forEach((hit, i) => {
+          const dt = startTime + (rep * drums.length + i) * S;
+          if (dt >= startTime + melodyDur) return;
+          if (hit) {
+            createNoise(dt, 0.08, 0.15, 'low'); // kick
+          } else if (i % 4 === 2) {
+            createNoise(dt, 0.05, 0.06, 'hi'); // snare on 3rd beat
+          }
+          if (i % 2 === 0) {
+            createNoise(dt, 0.02, 0.03, 'hi'); // hi-hat every 2nd 16th
+          }
+        });
+      }
+
+      // Loop
+      const loopTime = (melodyDur + 0.1) * 1000;
+      loopTimeout = setTimeout(() => {
+        if (playing) scheduleMusic(AC.currentTime + 0.05);
+      }, loopTime);
+    }
+
+    function startMusic() {
+      if (AC.state === 'suspended') AC.resume();
+      playing = true;
+      masterGain.gain.cancelScheduledValues(AC.currentTime);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, AC.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.35, AC.currentTime + 0.5);
+      scheduleMusic(AC.currentTime + 0.1);
+    }
+
+    function stopMusic() {
+      playing = false;
+      clearTimeout(loopTimeout);
+      masterGain.gain.cancelScheduledValues(AC.currentTime);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, AC.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0, AC.currentTime + 0.4);
+      setTimeout(() => {
+        scheduledNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+        scheduledNodes = [];
+      }, 500);
+    }
+
+    // Music button
+    const btn = document.getElementById('musicBtn');
+    btn.addEventListener('click', () => {
+      if (playing) {
+        stopMusic();
+        btn.textContent = '🔇 MUSIC';
+        btn.classList.remove('on');
+        localStorage.setItem('nqMusic', '0');
+      } else {
+        startMusic();
+        btn.textContent = '🔊 MUSIC';
+        btn.classList.add('on');
+        localStorage.setItem('nqMusic', '1');
+      }
+    });
+
+    // Auto-start after boot screen if user previously had it on
+    const savedPref = localStorage.getItem('nqMusic');
+    const bootDelay = 7 * 320 + 700 + 500;
+    if (savedPref === '1') {
+      setTimeout(() => {
+        startMusic();
+        btn.textContent = '🔊 MUSIC';
+        btn.classList.add('on');
+      }, bootDelay);
+    }
+
+    // Prompt user to enable music after first interaction
+    let prompted = false;
+    document.addEventListener('click', () => {
+      if (!prompted && !playing && savedPref !== '0') {
+        prompted = true;
+        btn.style.animation = 'blink 0.5s step-end 6';
+      }
+    }, { once: false });
+
+  })();
+
 </script>
 </body>
 </html>
