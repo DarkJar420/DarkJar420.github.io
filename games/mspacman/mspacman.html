@@ -1,1 +1,161 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Ms. Pac-Man — NeonQuarter Arcade</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="icon" type="image/png" href="icon/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      background: #020408;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      font-family: 'VT323', monospace;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.25) 3px, rgba(0,0,0,0.25) 4px);
+      pointer-events: none; z-index: 1000;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none; z-index: 999;
+    }
+
+    .topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1.5rem;
+      border-bottom: 1px solid #2a0d30;
+      background: rgba(2,4,8,0.95);
+      position: sticky; top: 0; z-index: 500;
+    }
+
+    .back-link {
+      font-family: 'VT323', monospace;
+      font-size: 1rem;
+      color: #ffb000;
+      text-decoration: none;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #ffb000;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: #00ff41; text-shadow: 0 0 8px #00ff41; }
+
+    .game-title {
+      font-family: 'Silkscreen', monospace;
+      font-size: 1.1rem;
+      color: #ff88ff;
+      letter-spacing: 3px;
+      text-shadow: 0 0 12px #ff88ff, 0 0 30px rgba(255,136,255,0.3);
+    }
+
+    .pac-link {
+      font-family: 'VT323', monospace;
+      font-size: 0.9rem;
+      color: #ffff00;
+      text-decoration: none;
+      letter-spacing: 2px;
+      border: 1px solid #ffff00;
+      padding: 0.2rem 0.7rem;
+      text-shadow: 0 0 8px #ffff00;
+      transition: all 0.2s;
+    }
+    .pac-link:hover { background: rgba(255,255,0,0.1); }
+
+    .game-wrap {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      padding: 0.5rem 0;
+    }
+
+    #canvas {
+      box-shadow:
+        0 0 30px rgba(255,136,255,0.15),
+        0 0 60px rgba(255,0,200,0.1);
+      border: 2px solid #330033;
+      display: block;
+    }
+
+    #atlas { display: none !important; }
+
+    .footer {
+      font-family: 'VT323', monospace;
+      font-size: 0.8rem;
+      color: #0d2a20;
+      letter-spacing: 3px;
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    @font-face {
+      font-family: 'ArcadeR';
+      src: url('font/ARCADE_R.TTF');
+    }
+  </style>
+
+  <!-- Load pacman.js then switch mode to Ms Pac-Man -->
+  <script src="pacman.js"></script>
+  <script>
+    // Override gameMode to Ms. Pac-Man before the game initializes
+    // The game reads window.location.hash on load — we set it to cheat_mspac
+    // which triggers: gameMode = GAME_MSPACMAN and goes straight to game
+    window.addEventListener('DOMContentLoaded', function() {
+      if (!window.location.hash || window.location.hash !== '#cheat_mspac') {
+        // Set hash to trigger Ms Pac-Man mode, then reload once
+        if (!sessionStorage.getItem('mspac_loaded')) {
+          sessionStorage.setItem('mspac_loaded', '1');
+          window.location.hash = 'cheat_mspac';
+          window.location.reload();
+        }
+      }
+    });
+    // Clear session flag when leaving
+    window.addEventListener('beforeunload', function() {
+      sessionStorage.removeItem('mspac_loaded');
+    });
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <a class="back-link" href="/index.html">← ARCADE</a>
+    <div class="game-title">MS. PAC-MAN</div>
+    <a class="pac-link" href="/games/pacman/pacman.html">PAC-MAN →</a>
+  </div>
+
+  <div class="game-wrap">
+    <div style="font-family: ArcadeR"> </div>
+    <canvas id="canvas">
+      <div style="color:#ff88ff;font-family:'VT323',monospace;font-size:1.5rem;padding:2rem;">
+        Your browser does not support HTML Canvas. Please upgrade!
+      </div>
+    </canvas>
+    <canvas id="atlas" style="display:none"></canvas>
+  </div>
+
+  <div class="footer">© SHAUN WILLIAMS · GPL v3 · NEONQUARTER ARCADE</div>
+
+</body>
+</html>
