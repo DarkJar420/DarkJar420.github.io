@@ -9620,14 +9620,7 @@ var homeState = (function(){
         function(ctx,x,y,frame) {
             atlas.drawMsPacmanSprite(ctx,x,y,DIR_RIGHT,getIconAnimFrame(frame));
         });
-    menu.addTextIconButton(getGameName(GAME_COOKIE),
-        function() {
-            gameMode = GAME_COOKIE;
-            exitTo(preNewGameState);
-        },
-        function(ctx,x,y,frame) {
-            drawCookiemanSprite(ctx,x,y,DIR_RIGHT,getIconAnimFrame(frame), true);
-        });
+    // Cookie Man removed
 
     menu.addSpacer(0.5);
     menu.addTextIconButton("LEARN",
@@ -13518,17 +13511,9 @@ window.addEventListener("load", function() {
 	if (anchor == "learn") {
 		switchState(learnState);
 	}
-	else if (anchor == "cheat_pac" || anchor == "cheat_mspac") {
-		gameMode = (anchor == "cheat_pac") ? GAME_PACMAN : GAME_MSPACMAN;
-		practiceMode = true;
-        switchState(newGameState);
-		for (var i=0; i<4; i++) {
-			ghosts[i].isDrawTarget = true;
-			ghosts[i].isDrawPath = true;
-		}
-	}
 	else {
-		switchState(homeState);
+		gameMode = GAME_MSPACMAN;
+		switchState(newGameState);
 	}
     executive.init();
 });
