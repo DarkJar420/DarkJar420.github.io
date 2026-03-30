@@ -1,424 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pac-Man — NeonQuarter Arcade</title>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen&display=swap" rel="stylesheet"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="icon" type="image/png" href="icon/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:#020408;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'VT323',monospace;color:#ffb000;padding:0.5rem;}
-    body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,0.3) 3px,rgba(0,0,0,0.3) 4px);pointer-events:none;z-index:100;}
-    body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.8) 100%);pointer-events:none;z-index:101;}
-    .back{position:fixed;top:0.6rem;left:1.2rem;font-family:'VT323',monospace;font-size:1rem;color:#ffb000;text-decoration:none;letter-spacing:2px;z-index:200;}
-    .back:hover{color:#00ff41;}
-    h1{font-family:'Silkscreen',monospace;font-size:1.6rem;letter-spacing:4px;color:#ffb000;text-shadow:0 0 15px #ffb000;margin-bottom:0.3rem;}
-    .hud{display:flex;gap:2.5rem;margin-bottom:0.3rem;font-size:1.1rem;letter-spacing:2px;justify-content:center;}
-    .hud-item{display:flex;flex-direction:column;align-items:center;}
-    .hud-label{font-size:0.6rem;color:#2a5540;letter-spacing:3px;}
-    .hud-val{color:#ffb000;font-family:'Silkscreen',monospace;font-size:0.85rem;}
-    .lives-row{display:flex;gap:5px;margin-bottom:0.3rem;justify-content:center;min-height:18px;}
-    canvas{border:2px solid #0044cc;box-shadow:0 0 20px rgba(0,68,204,0.4);background:#000;display:block;}
-    .info{margin-top:0.4rem;font-size:0.75rem;color:#2a5540;letter-spacing:2px;text-align:center;}
-    #msg{position:absolute;font-family:'Silkscreen',monospace;font-size:0.85rem;letter-spacing:2px;color:#ffb000;text-shadow:0 0 10px #ffb000;text-align:center;display:none;line-height:2;background:rgba(0,0,0,0.92);padding:1rem 2rem;border:1px solid #ffb000;}
-    .wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #020408;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      font-family: 'VT323', monospace;
+      overflow-x: hidden;
+    }
+
+    /* CRT scanlines */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.25) 3px, rgba(0,0,0,0.25) 4px);
+      pointer-events: none; z-index: 1000;
+    }
+
+    /* CRT vignette */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none; z-index: 999;
+    }
+
+    /* Top bar */
+    .topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1.5rem;
+      border-bottom: 1px solid #0d2a30;
+      background: rgba(2,4,8,0.95);
+      position: sticky; top: 0; z-index: 500;
+    }
+
+    .back-link {
+      font-family: 'VT323', monospace;
+      font-size: 1rem;
+      color: #ffb000;
+      text-decoration: none;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #ffb000;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: #00ff41; text-shadow: 0 0 8px #00ff41; }
+
+    .game-title {
+      font-family: 'Silkscreen', monospace;
+      font-size: 1.2rem;
+      color: #ffff00;
+      letter-spacing: 4px;
+      text-shadow: 0 0 12px #ffff00, 0 0 30px rgba(255,255,0,0.3);
+    }
+
+    .ms-link {
+      font-family: 'VT323', monospace;
+      font-size: 0.9rem;
+      color: #ff88ff;
+      text-decoration: none;
+      letter-spacing: 2px;
+      border: 1px solid #ff88ff;
+      padding: 0.2rem 0.7rem;
+      text-shadow: 0 0 8px #ff88ff;
+      transition: all 0.2s;
+    }
+    .ms-link:hover { background: rgba(255,136,255,0.1); }
+
+    /* Game container */
+    .game-wrap {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      padding: 0.5rem 0;
+    }
+
+    /* Style the game canvas */
+    #canvas {
+      box-shadow:
+        0 0 30px rgba(255,255,0,0.15),
+        0 0 60px rgba(255,176,0,0.1);
+      border: 2px solid #333300;
+      display: block;
+    }
+
+    #atlas { display: none !important; }
+
+    /* Footer */
+    .footer {
+      font-family: 'VT323', monospace;
+      font-size: 0.8rem;
+      color: #0d2a20;
+      letter-spacing: 3px;
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    /* Override game's internal font with our arcade font */
+    @font-face {
+      font-family: 'ArcadeR';
+      src: url('font/ARCADE_R.TTF');
+    }
   </style>
+  <script src="pacman.js"></script>
 </head>
 <body>
-<a class="back" href="/index.html">← BACK TO ARCADE</a>
-<h1>PAC-MAN</h1>
-<div class="hud">
-  <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-val" id="score">0</div></div>
-  <div class="hud-item"><div class="hud-label">BEST</div><div class="hud-val" id="best">0</div></div>
-  <div class="hud-item"><div class="hud-label">LEVEL</div><div class="hud-val" id="level">1</div></div>
-</div>
-<div class="lives-row" id="livesRow"></div>
-<div class="wrap">
-  <canvas id="c"></canvas>
-  <div id="msg"></div>
-</div>
-<div class="info">ARROW KEYS / WASD TO MOVE &nbsp;|&nbsp; SPACE TO START</div>
 
-<script>
-// Audio
-const AC=new(window.AudioContext||window.webkitAudioContext)();
-function beep(f,d,t,v){try{const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type=t||'square';o.frequency.value=f;g.gain.setValueAtTime(v||0.07,AC.currentTime);g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+d);o.start();o.stop(AC.currentTime+d);}catch(e){}}
-function sndDot(){beep(700,0.03,'sine',0.05);}
-function sndPow(){beep(180,0.2,'sawtooth',0.1);}
-function sndEat(){beep(400,0.07,'square',0.1);setTimeout(()=>beep(700,0.07,'square',0.1),80);}
-function sndDie(){[300,250,180,130,100].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'sawtooth',0.12),i*90));}
-function sndWin(){[523,659,784,880,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'sine',0.1),i*80));}
+  <div class="topbar">
+    <a class="back-link" href="/index.html">← ARCADE</a>
+    <div class="game-title">PAC-MAN</div>
+    <a class="ms-link" href="/games/mspacman/mspacman.html">MS PAC-MAN →</a>
+  </div>
 
-// Map: 0=dot 1=wall 2=empty 3=power 4=door 5=house
-const TEMPLATE=[
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
-  [1,3,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,3,1],
-  [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,1,0,1],
-  [1,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0,1],
-  [1,1,1,1,0,1,1,1,2,1,1,1,2,1,1,1,0,1,1,1,1],
-  [1,1,1,1,0,1,2,2,2,2,2,2,2,2,2,1,0,1,1,1,1],
-  [1,1,1,1,0,1,2,1,1,5,5,5,1,1,2,1,0,1,1,1,1],
-  [2,2,2,2,0,2,2,1,5,5,5,5,5,1,2,2,0,2,2,2,2],
-  [1,1,1,1,0,1,2,1,5,5,5,5,5,1,2,1,0,1,1,1,1],
-  [1,1,1,1,0,1,2,1,1,1,4,1,1,1,2,1,0,1,1,1,1],
-  [1,1,1,1,0,1,2,2,2,2,2,2,2,2,2,1,0,1,1,1,1],
-  [1,1,1,1,0,1,2,1,1,1,1,1,1,1,2,1,0,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
-  [1,3,0,1,0,0,0,0,0,2,2,2,0,0,0,0,0,1,0,3,1],
-  [1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1],
-  [1,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0,1],
-  [1,0,1,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
+  <div class="game-wrap">
+    <div style="font-family: ArcadeR"> </div>
+    <canvas id="canvas">
+      <div style="color:#ffb000;font-family:'VT323',monospace;font-size:1.5rem;padding:2rem;">
+        Your browser does not support HTML Canvas. Please upgrade!
+      </div>
+    </canvas>
+    <canvas id="atlas" style="display:none"></canvas>
+  </div>
 
-const ROWS=TEMPLATE.length,COLS=TEMPLATE[0].length,T=20;
-const canvas=document.getElementById('c');
-canvas.width=COLS*T;canvas.height=ROWS*T;
-const ctx=canvas.getContext('2d');
-const CW=canvas.width,CH=canvas.height;
+  <div class="footer">© SHAUN WILLIAMS · GPL v3 · NEONQUARTER ARCADE</div>
 
-const GCOLORS=['#ff0000','#ffb8ff','#00e5ff','#ffb852'];
-const GNAMES=['BLINKY','PINKY','INKY','CLYDE'];
-
-// Ghost start positions inside house
-const GSTART=[
-  {tx:10,ty:9,dx:-1,dy:0,release:0},    // Blinky - starts outside door
-  {tx:9, ty:10,dx:0,dy:1,release:180},  // Pinky
-  {tx:10,ty:10,dx:0,dy:-1,release:340}, // Inky
-  {tx:11,ty:10,dx:0,dy:1,release:500},  // Clyde
-];
-
-let map,pac,ghosts,score,best,lives,level,scared,sTimer,running,started,frame,dots,eaten,animId;
-
-function cloneMap(){return TEMPLATE.map(r=>[...r]);}
-function countDots(m){let n=0;m.forEach(r=>r.forEach(c=>{if(c===0||c===3)n++;}));return n;}
-
-function pacSpeed(){return 1.4+level*0.06;}  // pixels per frame — keep reasonable
-function ghostSpeed(i){return Math.min(1.2+level*0.055,2.8)-(i*0.05);}
-function scaredDur(){return Math.max(400-level*25,100);}
-
-function initGame(){
-  score=0;lives=3;level=1;best=+localStorage.getItem('pacBest')||0;
-  scared=false;sTimer=0;running=false;started=false;frame=0;
-  map=cloneMap();dots=countDots(map);eaten=0;
-  resetPositions();
-  updateHUD();drawLives();
-  showMsg('PAC-MAN\n\nPRESS SPACE\nTO START',true);
-  cancelAnimationFrame(animId);
-  animId=requestAnimationFrame(gameLoop);
-}
-
-function resetPositions(){
-  pac={
-    px:10*T+T/2, py:17*T+T/2,    // pixel center
-    tx:10, ty:17,                  // current tile
-    ndx:0, ndy:0,                  // next requested direction
-    dx:0,  dy:0,                   // current direction
-    progress:0,                    // 0..1 between tiles
-    moving:false
-  };
-  ghosts=GSTART.map((gs,i)=>({
-    px:(gs.tx)*T+T/2, py:(gs.ty)*T+T/2,
-    tx:gs.tx, ty:gs.ty,
-    dx:gs.dx, dy:gs.dy,
-    progress:0,
-    inHouse:i>0,
-    releaseCountdown:gs.release,
-    dead:false, eaten:false,
-    color:GCOLORS[i], name:GNAMES[i],
-    speed:ghostSpeed(i)
-  }));
-}
-
-function showMsg(txt,p){const m=document.getElementById('msg');m.style.display='block';m.innerHTML=txt.replace(/\n/g,'<br/>');if(!p)setTimeout(()=>m.style.display='none',1800);}
-function updateHUD(){document.getElementById('score').textContent=score;document.getElementById('best').textContent=best;document.getElementById('level').textContent=level;}
-function drawLives(){
-  const row=document.getElementById('livesRow');row.innerHTML='';
-  for(let i=0;i<lives;i++){
-    const s=document.createElement('canvas');s.width=18;s.height=18;
-    const c=s.getContext('2d');c.fillStyle='#ffff00';
-    c.beginPath();c.moveTo(9,9);c.arc(9,9,8,0.35,Math.PI*1.65);c.closePath();c.fill();
-    row.appendChild(s);
-  }
-}
-
-function isWall(tx,ty){
-  if(tx<0||tx>=COLS)return false; // tunnel
-  if(ty<0||ty>=ROWS)return true;
-  const c=map[ty][tx];return c===1;
-}
-function isGhostWall(tx,ty,fromHouse){
-  if(tx<0||tx>=COLS||ty<0||ty>=ROWS)return true;
-  const c=map[ty][tx];
-  if(c===1)return true;
-  if(c===4&&!fromHouse)return true; // ghosts can't go through door unless exiting
-  return false;
-}
-
-// ── PAC MOVEMENT ──
-function updatePac(){
-  const spd=pacSpeed();
-  if(!pac.moving){
-    // Try new direction first
-    let dx=pac.ndx,dy=pac.ndy;
-    if((dx!==0||dy!==0)&&!isWall(pac.tx+dx,pac.ty+dy)){
-      pac.dx=dx;pac.dy=dy;
-    }
-    // Try current direction
-    if((pac.dx!==0||pac.dy!==0)&&!isWall(pac.tx+pac.dx,pac.ty+pac.dy)){
-      pac.moving=true;pac.progress=0;
-    }
-    return;
-  }
-  pac.progress+=spd/T;
-  pac.px=pac.tx*T+T/2+pac.dx*pac.progress*T;
-  pac.py=pac.ty*T+T/2+pac.dy*pac.progress*T;
-
-  if(pac.progress>=1){
-    pac.tx=((pac.tx+pac.dx+COLS)%COLS);
-    pac.ty=pac.ty+pac.dy;
-    pac.px=pac.tx*T+T/2;pac.py=pac.ty*T+T/2;
-    pac.progress=0;pac.moving=false;
-    eatCell();
-  }
-}
-
-function eatCell(){
-  const c=map[pac.ty]?.[pac.tx];
-  if(c===0){map[pac.ty][pac.tx]=2;score+=10;eaten++;sndDot();if(score>best){best=score;localStorage.setItem('pacBest',best);}}
-  if(c===3){map[pac.ty][pac.tx]=2;score+=50;eaten++;sndPow();scared=true;sTimer=scaredDur();ghosts.forEach(g=>{if(!g.dead&&!g.eaten&&!g.inHouse){g.dx*=-1;g.dy*=-1;}});}
-  if(eaten>=dots){nextLevel();}
-}
-
-// ── GHOST MOVEMENT ──
-function updateGhost(g){
-  if(g.eaten){return;} // being respawned
-  if(g.inHouse){
-    g.releaseCountdown--;
-    if(g.releaseCountdown<=0){
-      // Exit house
-      g.tx=10;g.ty=12;g.px=g.tx*T+T/2;g.py=g.ty*T+T/2;
-      g.dx=0;g.dy=-1;g.inHouse=false;g.progress=0;g.moving=false;
-    } else {
-      // Bounce inside house
-      g.py+=g.dy*0.8;
-      if(g.py>11*T+T/2||g.py<10*T+T/2)g.dy*=-1;
-    }
-    return;
-  }
-
-  const spd=scared?g.speed*0.55:g.speed;
-  if(!g.moving){chooseGhostDir(g);g.moving=true;g.progress=0;}
-  g.progress+=spd/T;
-  g.px=g.tx*T+T/2+g.dx*g.progress*T;
-  g.py=g.ty*T+T/2+g.dy*g.progress*T;
-
-  if(g.progress>=1){
-    g.tx=((g.tx+g.dx+COLS)%COLS);
-    g.ty=g.ty+g.dy;
-    g.px=g.tx*T+T/2;g.py=g.ty*T+T/2;
-    g.progress=0;g.moving=false;
-  }
-}
-
-function chooseGhostDir(g){
-  const dirs=[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
-  const noRev=dirs.filter(d=>!(d.x===-g.dx&&d.y===-g.dy));
-  const valid=noRev.filter(d=>!isGhostWall(g.tx+d.x,g.ty+d.y,false));
-  if(!valid.length){const rev=dirs.find(d=>!isGhostWall(g.tx+d.x,g.ty+d.y,false));if(rev){g.dx=rev.x;g.dy=rev.y;}return;}
-
-  let chosen;
-  const randChance=Math.max(0.55-level*0.05,0.05);
-  if(scared||Math.random()<randChance){
-    chosen=valid[Math.floor(Math.random()*valid.length)];
-  } else {
-    // Chase pac
-    chosen=valid.reduce((best,d)=>{
-      const nx=g.tx+d.x,ny=g.ty+d.y;
-      const dist=(nx-pac.tx)**2+(ny-pac.ty)**2;
-      return dist<best.dist?{d,dist}:best;
-    },{d:valid[0],dist:Infinity}).d;
-  }
-  g.dx=chosen.x;g.dy=chosen.y;
-}
-
-// ── COLLISION ──
-function checkCollisions(){
-  ghosts.forEach(g=>{
-    if(g.inHouse||g.eaten)return;
-    const dx=g.px-pac.px,dy=g.py-pac.py;
-    if(Math.sqrt(dx*dx+dy*dy)<T*0.75){
-      if(scared&&!g.dead){
-        g.dead=true;g.eaten=true;score+=200*level;
-        if(score>best){best=score;localStorage.setItem('pacBest',best);}
-        sndEat();
-        setTimeout(()=>{
-          g.tx=10;g.ty=10;g.px=10*T+T/2;g.py=10*T+T/2;
-          g.dx=0;g.dy=0;g.dead=false;g.eaten=false;g.inHouse=true;g.releaseCountdown=250;g.moving=false;g.progress=0;
-        },3000);
-      } else if(!g.dead&&!g.eaten){
-        loseLife();
-      }
-    }
-  });
-}
-
-function loseLife(){
-  running=false;lives--;drawLives();sndDie();
-  if(lives<=0){showMsg('GAME OVER\nSCORE: '+score,true);return;}
-  showMsg('OUCH!\n'+lives+' LIVES LEFT',false);
-  setTimeout(()=>{resetPositions();scared=false;sTimer=0;running=true;},2000);
-}
-
-function nextLevel(){
-  running=false;sndWin();level++;
-  showMsg('LEVEL '+level+'!\nGET READY!',false);
-  setTimeout(()=>{
-    map=cloneMap();dots=countDots(map);eaten=0;
-    resetPositions();scared=false;sTimer=0;
-    // Update ghost speeds for new level
-    ghosts.forEach((g,i)=>g.speed=ghostSpeed(i));
-    running=true;
-  },2500);
-}
-
-// ── DRAW ──
-function drawMap(){
-  map.forEach((row,ry)=>row.forEach((cell,cx)=>{
-    const px=cx*T,py=ry*T;
-    if(cell===1){
-      ctx.fillStyle='#00008b';ctx.fillRect(px,py,T,T);
-      ctx.strokeStyle='#0033cc';ctx.lineWidth=1;ctx.strokeRect(px+1,py+1,T-2,T-2);
-      ctx.strokeStyle='#0055ff';ctx.lineWidth=0.5;ctx.strokeRect(px+2,py+2,T-4,T-4);
-    } else if(cell===0){
-      ctx.fillStyle='#ffb000';ctx.shadowBlur=4;ctx.shadowColor='#ffb000';
-      ctx.beginPath();ctx.arc(px+T/2,py+T/2,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    } else if(cell===3){
-      const p=0.65+0.35*Math.sin(frame*0.1);
-      ctx.fillStyle=`rgba(255,240,0,${p})`;ctx.shadowBlur=10;ctx.shadowColor='#ffff00';
-      ctx.beginPath();ctx.arc(px+T/2,py+T/2,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    } else if(cell===4){
-      ctx.fillStyle='#ff88ff';ctx.fillRect(px+1,py+T/2-2,T-2,4);
-    } else if(cell===5){
-      ctx.fillStyle='#06061a';ctx.fillRect(px,py,T,T);
-    } else {
-      ctx.fillStyle='#000';ctx.fillRect(px,py,T,T);
-    }
-  }));
-}
-
-function drawPac(){
-  const angle=pac.dx===1?0:pac.dx===-1?Math.PI:pac.dy===1?Math.PI/2:pac.dy===-1?-Math.PI/2:0;
-  const mouth=pac.moving?Math.abs(Math.sin(frame*0.22))*0.3:0.03;
-  ctx.fillStyle='#ffff00';ctx.shadowBlur=14;ctx.shadowColor='#ffee00';
-  ctx.beginPath();
-  ctx.moveTo(pac.px,pac.py);
-  ctx.arc(pac.px,pac.py,T/2-1,angle+mouth*Math.PI,angle+(2-mouth)*Math.PI);
-  ctx.closePath();ctx.fill();ctx.shadowBlur=0;
-}
-
-function drawGhost(g){
-  if(g.inHouse&&g.releaseCountdown>0){
-    // Draw inside house at bounce position
-  }
-  const r=T/2-1;
-  let col;
-  if(g.eaten){col='rgba(100,120,200,0.6)';}
-  else if(scared){col=sTimer<80&&frame%16<8?'#ddddff':'#2222cc';}
-  else col=g.color;
-
-  ctx.fillStyle=col;ctx.shadowBlur=g.inHouse?3:8;ctx.shadowColor=col;
-
-  // Body arc
-  ctx.beginPath();
-  ctx.arc(g.px,g.py-1,r,Math.PI,0);
-  ctx.lineTo(g.px+r,g.py+r);
-  // 3 bumps at bottom
-  const bw=r*2/3;
-  for(let i=2;i>=0;i--){
-    const bx=g.px-r+i*bw+bw/2;
-    const by=g.py+r-(i%2===0?0:r*0.35);
-    ctx.lineTo(bx,by);
-  }
-  ctx.lineTo(g.px-r,g.py+r);
-  ctx.closePath();ctx.fill();ctx.shadowBlur=0;
-
-  if(!scared&&!g.eaten){
-    // Eyes
-    ctx.fillStyle='#fff';
-    ctx.beginPath();ctx.ellipse(g.px-5,g.py-3,3.5,4.5,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(g.px+5,g.py-3,3.5,4.5,0,0,Math.PI*2);ctx.fill();
-    // Pupils track pac
-    const angle2=Math.atan2(pac.py-g.py,pac.px-g.px);
-    const ey=Math.sin(angle2)*1.5,ex=Math.cos(angle2)*1.5;
-    ctx.fillStyle='#000099';
-    ctx.beginPath();ctx.arc(g.px-5+ex,g.py-3+ey,2,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(g.px+5+ex,g.py-3+ey,2,0,Math.PI*2);ctx.fill();
-  } else if(scared&&!g.eaten){
-    // Scared expression
-    ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('><',g.px,g.py-1);
-    ctx.beginPath();ctx.moveTo(g.px-r*0.6,g.py+4);
-    for(let i=0;i<=4;i++)ctx.lineTo(g.px-r*0.6+i*r*0.3,g.py+4+(i%2?3:-3));
-    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
-  } else {
-    // Just eyes
-    ctx.fillStyle='rgba(180,180,255,0.9)';
-    ctx.beginPath();ctx.ellipse(g.px-4,g.py-2,2.5,3.5,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(g.px+4,g.py-2,2.5,3.5,0,0,Math.PI*2);ctx.fill();
-  }
-}
-
-function gameLoop(){
-  frame++;
-  if(running){
-    if(scared){sTimer--;if(sTimer<=0)scared=false;}
-    updatePac();
-    ghosts.forEach(g=>updateGhost(g));
-    checkCollisions();
-    updateHUD();
-  }
-  // Draw
-  ctx.fillStyle='#000';ctx.fillRect(0,0,CW,CH);
-  drawMap();
-  ghosts.forEach(g=>drawGhost(g));
-  drawPac();
-  // Level watermark
-  if(!running&&started){
-    ctx.fillStyle='rgba(255,176,0,0.08)';ctx.font='bold 60px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('LEVEL '+level,CW/2,CH/2);
-  }
-  animId=requestAnimationFrame(gameLoop);
-}
-
-// Controls
-document.addEventListener('keydown',e=>{
-  if(e.code==='Space'){
-    e.preventDefault();
-    if(!started){started=true;running=true;pac.ndx=1;pac.ndy=0;document.getElementById('msg').style.display='none';}
-    return;
-  }
-  if(!started)return;
-  if(e.key==='ArrowLeft' ||e.key==='a'){e.preventDefault();pac.ndx=-1;pac.ndy=0;}
-  if(e.key==='ArrowRight'||e.key==='d'){e.preventDefault();pac.ndx=1;pac.ndy=0;}
-  if(e.key==='ArrowUp'   ||e.key==='w'){e.preventDefault();pac.ndx=0;pac.ndy=-1;}
-  if(e.key==='ArrowDown' ||e.key==='s'){e.preventDefault();pac.ndx=0;pac.ndy=1;}
-});
-
-let tx0,ty0;
-canvas.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;},{passive:true});
-canvas.addEventListener('touchend',e=>{
-  const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;
-  if(Math.abs(dx)>Math.abs(dy)){pac.ndx=dx>0?1:-1;pac.ndy=0;}
-  else{pac.ndx=0;pac.ndy=dy>0?1:-1;}
-},{passive:true});
-
-initGame();
-</script>
 </body>
 </html>
