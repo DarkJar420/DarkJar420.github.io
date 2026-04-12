@@ -674,7 +674,7 @@
     const BADGE_CLASS = { HOT:'badge-hot', NEW:'badge-new', FAV:'badge-fav' };
 
     // Update game count stat
-    const statVal = document.querySelector('.stat-val');
+    const statVal = document.getElementById('gameCount');
     if (statVal) statVal.textContent = GAMES.length;
 
     GAMES.forEach(game => {
