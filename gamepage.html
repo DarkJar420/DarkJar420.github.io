@@ -99,13 +99,17 @@
 
     /* Game iframe container */
     .game-frame-wrap{
-      flex:1;
-      position:relative;
-      min-height:0;
+      position:fixed;
+      top:48px;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:1;
     }
 
     iframe#gameFrame{
-      width:100%;height:100%;
+      width:100%;
+      height:100%;
       border:none;
       display:block;
       background:#000;
@@ -113,7 +117,7 @@
 
     /* Pause overlay */
     #pauseOverlay{
-      position:absolute;inset:0;
+      position:fixed;top:48px;left:0;right:0;bottom:0;
       background:rgba(0,0,0,0.88);
       display:none;
       flex-direction:column;
