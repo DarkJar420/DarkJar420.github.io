@@ -356,65 +356,7 @@
       <button class="ftab" data-f="card">CARD</button>
     </div>
     <div class="game-grid" id="grid">
-
-      <a class="game-card" href="games/pacman/pacman.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <span class="card-badge badge-hot">HOT</span>
-        <div class="card-art art-pacman">🟡<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">PAC-MAN</div><p class="card-desc">Eat every dot. Dodge every ghost. The legend never dies.</p></div>
-      </a>
-
-      <a class="game-card" href="games/mspacman/mspacman.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <span class="card-badge badge-new">NEW</span>
-        <div class="card-art art-mspacman">💗<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">MS. PAC-MAN</div><p class="card-desc">4 unique mazes, faster ghosts, and a bow. The sequel that topped the original.</p></div>
-      </a>
-
-      <a class="game-card" href="games/snake/snake.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <span class="card-badge badge-fav">FAV</span>
-        <div class="card-art art-snake">🐍<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">SNAKE</div><p class="card-desc">Grow longer. Move faster. Don't eat yourself.</p></div>
-      </a>
-
-      <a class="game-card" href="games/tetris/tetris.html" data-cat="puzzle">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <div class="card-art art-tetris">🧱<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">PUZZLE</div><div class="card-name">TETRIS</div><p class="card-desc">Stack the pieces. Clear the lines. Beat the clock.</p></div>
-      </a>
-
-      <a class="game-card" href="games/2048/2048.html" data-cat="puzzle">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <span class="card-badge badge-new">NEW</span>
-        <div class="card-art art-2048">🔢<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">PUZZLE</div><div class="card-name">2048</div><p class="card-desc">Slide and merge until you hit the magic number.</p></div>
-      </a>
-
-      <a class="game-card" href="games/spaceinvaders/spaceinvaders.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <div class="card-art art-spaceinvaders">👾<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">SPACE INVADERS</div><p class="card-desc">Shoot the aliens before they reach you. The classic that defined a genre.</p></div>
-      </a>
-
-      <a class="game-card" href="games/breakout/breakout.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <div class="card-art art-breakout">🏓<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">BREAKOUT</div><p class="card-desc">Smash every brick with your paddle. Pure Atari DNA.</p></div>
-      </a>
-
-      <a class="game-card" href="games/solitaire/solitaire.html" data-cat="card">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <div class="card-art art-solitaire">🃏<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">CARD</div><div class="card-name">SOLITAIRE</div><p class="card-desc">Stack the suits. Clear the board. Beat your best.</p></div>
-      </a>
-
-      <a class="game-card" href="games/frogger/frogger.html" data-cat="arcade">
-        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div><div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
-        <div class="card-art art-frogger">🐸<div class="card-overlay"><div class="play-btn">▶ PLAY NOW</div></div></div>
-        <div class="card-body"><div class="card-cat">ARCADE</div><div class="card-name">FROGGER</div><p class="card-desc">Cross the road. Cross the river. Don't get got.</p></div>
-      </a>
-
+      <!-- Cards generated automatically from games.js -->
     </div>
   </section>
 
@@ -721,6 +663,70 @@
     }, { once: false });
 
   })();
+
+
+  // ── Load games from games.js and build cards dynamically ──
+  function buildGameCards() {
+    const grid = document.getElementById('grid');
+    const BADGE_CLASS = { HOT:'badge-hot', NEW:'badge-new', FAV:'badge-fav' };
+
+    // Update game count stat
+    const statVal = document.querySelector('.stat-val');
+    if (statVal) statVal.textContent = GAMES.length;
+
+    GAMES.forEach(game => {
+      const card = document.createElement('a');
+      card.className = 'game-card';
+      card.href = game.file;
+      card.dataset.cat = game.category;
+
+      const badge = game.badge
+        ? `<span class="card-badge ${BADGE_CLASS[game.badge]}">${game.badge}</span>` : '';
+
+      card.innerHTML = `
+        <div class="card-corner cc-tl"></div><div class="card-corner cc-tr"></div>
+        <div class="card-corner cc-bl"></div><div class="card-corner cc-br"></div>
+        ${badge}
+        <div class="card-art" style="background:radial-gradient(circle at 40% 50%,${game.color}22,#000408)">
+          ${game.emoji}
+          <div class="card-overlay"><div class="play-btn" style="background:${game.color};box-shadow:0 0 25px ${game.color}">▶ PLAY NOW</div></div>
+        </div>
+        <div class="card-body">
+          <div class="card-cat">${game.category.toUpperCase()}</div>
+          <div class="card-name">${game.title}</div>
+          <p class="card-desc">${game.description}</p>
+        </div>`;
+
+      grid.appendChild(card);
+    });
+
+    // Re-run intersection observer on new cards
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          e.target.style.animation = `fadeUp 0.5s ${i*0.08}s ease both`;
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.game-card').forEach(c => obs.observe(c));
+
+    // Re-run filter tabs
+    const tabs = document.querySelectorAll('.ftab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const f = tab.dataset.f;
+        document.querySelectorAll('.game-card').forEach(c =>
+          c.classList.toggle('hidden', f !== 'all' && c.dataset.cat !== f)
+        );
+      });
+    });
+  }
+
+  // Build cards once DOM is ready
+  buildGameCards();
 
 </script>
 </body>
