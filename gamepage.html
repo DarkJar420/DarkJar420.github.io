@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title id="pageTitle">Game — NeonQuarter Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+
+    body{
+      background:#020408;
+      font-family:'VT323',monospace;
+      color:#d0ffe8;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      cursor:none;
+    }
+
+    /* CRT scanlines */
+    body::before{
+      content:'';position:fixed;inset:0;
+      background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,0.25) 3px,rgba(0,0,0,0.25) 4px);
+      pointer-events:none;z-index:1000;
+    }
+    /* CRT vignette */
+    body::after{
+      content:'';position:fixed;inset:0;
+      background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.8) 100%);
+      pointer-events:none;z-index:999;
+    }
+
+    /* Custom cursor */
+    #nq-cursor{
+      position:fixed;width:18px;height:18px;
+      border:2px solid #ffb000;border-radius:50%;
+      pointer-events:none;z-index:9999;
+      transform:translate(-50%,-50%);
+      transition:transform 0.08s,background 0.1s;
+      mix-blend-mode:screen;
+      box-shadow:0 0 8px #ffb000;
+    }
+
+    /* Top bar */
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 1.5rem;height:48px;
+      background:rgba(2,4,8,0.97);
+      border-bottom:1px solid #0d2a30;
+      position:sticky;top:0;z-index:500;
+      flex-shrink:0;
+    }
+
+    .back-btn{
+      font-family:'VT323',monospace;font-size:1rem;
+      color:#ffb000;text-decoration:none;
+      letter-spacing:2px;
+      text-shadow:0 0 8px #ffb000;
+      transition:color 0.2s;
+    }
+    .back-btn:hover{color:#00ff41;}
+
+    .game-title{
+      font-family:'Silkscreen',monospace;
+      font-size:1rem;letter-spacing:3px;
+    }
+
+    .topbar-right{
+      display:flex;align-items:center;gap:0.8rem;
+    }
+
+    /* Visit counter badge */
+    .visit-badge{
+      font-family:'VT323',monospace;font-size:0.85rem;
+      letter-spacing:2px;color:#2a5540;
+      display:flex;align-items:center;gap:4px;
+    }
+    .visit-badge span{color:#00e5ff;}
+
+    /* Pause button */
+    .pause-btn{
+      font-family:'Silkscreen',monospace;font-size:0.6rem;
+      letter-spacing:2px;padding:0.3rem 0.9rem;
+      background:transparent;
+      border:1px solid #ffb000;
+      color:#ffb000;cursor:none;
+      clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
+      transition:all 0.2s;
+    }
+    .pause-btn:hover{
+      background:rgba(255,176,0,0.15);
+      box-shadow:0 0 10px rgba(255,176,0,0.3);
+    }
+    .pause-btn.paused{
+      border-color:#00ff41;color:#00ff41;
+      box-shadow:0 0 10px rgba(0,255,65,0.3);
+    }
+
+    /* Game iframe container */
+    .game-frame-wrap{
+      flex:1;
+      position:relative;
+      min-height:0;
+    }
+
+    iframe#gameFrame{
+      width:100%;height:100%;
+      border:none;
+      display:block;
+      background:#000;
+    }
+
+    /* Pause overlay */
+    #pauseOverlay{
+      position:absolute;inset:0;
+      background:rgba(0,0,0,0.88);
+      display:none;
+      flex-direction:column;
+      align-items:center;justify-content:center;
+      gap:1.5rem;
+      z-index:400;
+    }
+    #pauseOverlay.visible{display:flex;}
+
+    .pause-text{
+      font-family:'Silkscreen',monospace;
+      font-size:2rem;letter-spacing:6px;
+      color:#ffb000;
+      text-shadow:0 0 20px #ffb000,0 0 60px rgba(255,176,0,0.4);
+      animation:pauseBlink 1.2s step-end infinite;
+    }
+    @keyframes pauseBlink{50%{opacity:0.3;}}
+
+    .pause-sub{
+      font-family:'VT323',monospace;
+      font-size:1.1rem;letter-spacing:3px;
+      color:#2a5540;
+    }
+
+    .resume-btn{
+      font-family:'Silkscreen',monospace;font-size:0.7rem;
+      letter-spacing:2px;padding:0.8rem 2.5rem;
+      background:#ffb000;color:#000;border:none;
+      cursor:none;
+      clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+      box-shadow:0 0 20px #ffb000;
+      transition:transform 0.15s,box-shadow 0.15s;
+    }
+    .resume-btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 0 30px #ffb000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="nq-cursor"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a class="back-btn" href="/index.html">← ARCADE</a>
+  <div class="game-title" id="gameTitleEl">GAME</div>
+  <div class="topbar-right">
+    <div class="visit-badge">👁 <span id="gameVisits">...</span> PLAYS</div>
+    <button class="pause-btn" id="pauseBtn">⏸ PAUSE</button>
+  </div>
+</div>
+
+<!-- GAME FRAME -->
+<div class="game-frame-wrap">
+  <iframe id="gameFrame" src="" title="Game" allow="autoplay"></iframe>
+
+  <!-- PAUSE OVERLAY -->
+  <div id="pauseOverlay">
+    <div class="pause-text">PAUSED</div>
+    <div class="pause-sub">GAME IS PAUSED</div>
+    <button class="resume-btn" id="resumeBtn">▶ RESUME</button>
+  </div>
+</div>
+
+<script>
+// ── CURSOR ──
+const cur = document.getElementById('nq-cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+document.addEventListener('mousedown', () => {
+  cur.style.transform = 'translate(-50%,-50%) scale(0.5)';
+  cur.style.background = '#ffb000';
+});
+document.addEventListener('mouseup', () => {
+  cur.style.transform = 'translate(-50%,-50%)';
+  cur.style.background = 'transparent';
+});
+
+// ── GAME CONFIG ──
+// Read game info from URL query string: ?game=snake&title=SNAKE&color=%2300ff41
+const params  = new URLSearchParams(window.location.search);
+const gameSlug  = params.get('game')  || 'snake';
+const gameTitle = params.get('title') || gameSlug.toUpperCase();
+const gameColor = params.get('color') || '#00e5ff';
+const gameFile  = params.get('file')  || ('games/' + gameSlug + '/' + gameSlug + '.html');
+
+// Set title and colour
+document.title = gameTitle + ' — NeonQuarter Arcade';
+document.getElementById('gameTitleEl').textContent = gameTitle;
+document.getElementById('gameTitleEl').style.color = gameColor;
+document.getElementById('gameTitleEl').style.textShadow = '0 0 10px ' + gameColor;
+
+// Load game in iframe
+document.getElementById('gameFrame').src = '/' + gameFile;
+
+// ── VISIT COUNTER (per game) ──
+const NAMESPACE = 'neonquarter-darkjar420';
+fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + gameSlug)
+  .then(r => r.json())
+  .then(data => {
+    const el = document.getElementById('gameVisits');
+    if (el && data.value) {
+      const n = data.value;
+      el.textContent = n >= 1000 ? (n/1000).toFixed(1) + 'K' : n;
+    }
+  })
+  .catch(() => {
+    document.getElementById('gameVisits').textContent = '?';
+  });
+
+// ── PAUSE / RESUME ──
+let paused = false;
+const overlay  = document.getElementById('pauseOverlay');
+const pauseBtn = document.getElementById('pauseBtn');
+const resumeBtn = document.getElementById('resumeBtn');
+const frame    = document.getElementById('gameFrame');
+
+function pause() {
+  paused = true;
+  overlay.classList.add('visible');
+  pauseBtn.textContent = '▶ RESUME';
+  pauseBtn.classList.add('paused');
+  // Blur the iframe so keypresses don't reach the game
+  frame.style.pointerEvents = 'none';
+  frame.style.filter = 'blur(4px) brightness(0.3)';
+}
+
+function resume() {
+  paused = false;
+  overlay.classList.remove('visible');
+  pauseBtn.textContent = '⏸ PAUSE';
+  pauseBtn.classList.remove('paused');
+  frame.style.pointerEvents = '';
+  frame.style.filter = '';
+  frame.focus();
+}
+
+pauseBtn.addEventListener('click', () => paused ? resume() : pause());
+resumeBtn.addEventListener('click', resume);
+
+// Press Escape to pause/resume
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') paused ? resume() : pause();
+});
+</script>
+</body>
+</html>
