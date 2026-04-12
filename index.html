@@ -326,7 +326,6 @@
     <a href="#games" class="hero-cta">START PLAYING</a>
     <div class="hero-stats">
       <div class="stat"><div class="stat-val" id="gameCount">9</div><div class="stat-label">GAMES</div></div>
-      <div class="stat"><div class="stat-val" id="visitCount">...</div><div class="stat-label">VISITORS</div></div>
       <div class="stat"><div class="stat-val">0</div><div class="stat-label">DOWNLOADS</div></div>
     </div>
   </section>
@@ -731,30 +730,6 @@
 
   // Build cards once DOM is ready
   buildGameCards();
-
-
-  // ── VISIT COUNTER ──
-  // Uses CountAPI (free, no signup, no backend needed)
-  // Counts total homepage visits
-  (function() {
-    const NAMESPACE = 'neonquarter-darkjar420';
-
-    // Homepage total visit counter
-    fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/homepage')
-      .then(r => r.json())
-      .then(data => {
-        const el = document.getElementById('visitCount');
-        if (el && data.value) {
-          // Format large numbers nicely e.g. 1234 -> 1.2K
-          const n = data.value;
-          el.textContent = n >= 1000 ? (n/1000).toFixed(1) + 'K' : n;
-        }
-      })
-      .catch(() => {
-        const el = document.getElementById('visitCount');
-        if (el) el.textContent = '?';
-      });
-  })();
 
 </script>
 </body>

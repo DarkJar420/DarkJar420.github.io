@@ -69,13 +69,6 @@
     .topbar-right{
       display:flex;align-items:center;gap:0.8rem;
     }
-
-    /* Visit counter badge */
-    .visit-badge{
-      font-family:'VT323',monospace;font-size:0.85rem;
-      letter-spacing:2px;color:#2a5540;
-      display:flex;align-items:center;gap:4px;
-    }
     .visit-badge span{color:#00e5ff;}
 
     /* Pause button */
@@ -166,7 +159,6 @@
   <a class="back-btn" href="/index.html">← ARCADE</a>
   <div class="game-title" id="gameTitleEl">GAME</div>
   <div class="topbar-right">
-    <div class="visit-badge">👁 <span id="gameVisits">...</span> PLAYS</div>
     <button class="pause-btn" id="pauseBtn">⏸ PAUSE</button>
   </div>
 </div>
@@ -214,22 +206,10 @@ document.getElementById('gameTitleEl').style.color = gameColor;
 document.getElementById('gameTitleEl').style.textShadow = '0 0 10px ' + gameColor;
 
 // Load game in iframe
-document.getElementById('gameFrame').src = '/' + gameFile;
-
-// ── VISIT COUNTER (per game) ──
-const NAMESPACE = 'neonquarter-darkjar420';
-fetch('https://api.countapi.xyz/hit/' + NAMESPACE + '/' + gameSlug)
-  .then(r => r.json())
-  .then(data => {
-    const el = document.getElementById('gameVisits');
-    if (el && data.value) {
-      const n = data.value;
-      el.textContent = n >= 1000 ? (n/1000).toFixed(1) + 'K' : n;
-    }
-  })
-  .catch(() => {
-    document.getElementById('gameVisits').textContent = '?';
-  });
+// Make sure path starts correctly
+const cleanFile = gameFile.replace(/^\//, '');
+document.getElementById('gameFrame').src = '/' + cleanFile;
+console.log('Loading game:', '/' + cleanFile);
 
 // ── PAUSE / RESUME ──
 let paused = false;
