@@ -258,6 +258,35 @@ function resume() {
   frame.focus();
 }
 
+// Fix game body sizing inside iframe after load
+frame.addEventListener('load', function() {
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    const style = doc.createElement('style');
+    style.textContent = `
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+      }
+      canvas {
+        max-width: 100% !important;
+        max-height: calc(100vh - 160px) !important;
+      }
+    `;
+    doc.head.appendChild(style);
+  } catch(e) {
+    // Cross-origin frames will fail silently - that's ok
+  }
+});
+
 pauseBtn.addEventListener('click', () => paused ? resume() : pause());
 resumeBtn.addEventListener('click', resume);
 
